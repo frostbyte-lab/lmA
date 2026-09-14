@@ -1,113 +1,99 @@
-# Catatan Project: Otak Chat
+# Otak Chat APK
 
-Ringkasan lengkap alur, arsitektur, dan fitur yang sudah direncanakan/dibuat.
+Aplikasi chat Android berbasis **Capacitor** yang menjadi wajah untuk server **Ollama** yang berjalan di Termux/Ubuntu pada HP.
 
-## Konsep Dasar
+## Struktur project
 
-```
-┌──────────────────────────┐        ┌────────────────────────────────┐
-│   HP (Termux + Ubuntu)   │        │         GitHub Repo              │
-│                           │        │                                  │
-│   Ollama server            │<------>│  www/index.html (kode app)      │
-│   + model llama3.1:8b      │  API   │  .github/workflows/              │
-│   = OTAK                   │        │    build-apk.yml (auto build)    │
-│                           │        │                                  │
-│   127.0.0.1:11434           │        │  APK di-build otomatis tiap push │
-└──────────────────────────┘        └────────────────────────────────┘
-            ▲
-            │ opsional, akses dari luar
-            │
-     Cloudflare Tunnel (cloudflared)
-     https://xxxx.trycloudflare.com
+```text
+otak-chat-apk/
+├── www/
+│   └── index.html          # UI chat dan koneksi streaming ke Ollama
+├── capacitor.config.json   # konfigurasi aplikasi Capacitor
+├── package.json            # dependensi dan skrip project
+├── .github/
+│   └── workflows/
+│       └── build-apk.yml   # build APK otomatis di GitHub Actions
+└── README.md
 ```
 
-- **Otak** = Ollama + model AI, jalan di Termux/Ubuntu di HP.
-- **Wajah/Wadah** = APK (dibungkus dari `index.html` pakai Capacitor), tampilan chat yang connect ke otak.
-- **GitHub** = tempat kode disimpan; GitHub Actions otomatis build ulang APK setiap kode di-push.
-- **Cloudflare Tunnel** = opsional, supaya otak di HP bisa diakses dari luar jaringan WiFi.
+## Cara kerja
 
----
+```text
+HP (Termux + Ubuntu)                         GitHub Repo
+┌──────────────────────────┐       ┌──────────────────────────────┐
+│ Ollama + llama3.1:8b     │ HTTP  │ www/index.html                │
+│ 127.0.0.1:11434          │◄─────►│ Capacitor + workflow build    │
+└──────────────────────────┘       └──────────────────────────────┘
+```
 
-## 1. Setup Otak (Ollama di Termux)
+- **Otak** adalah Ollama dan model AI yang berjalan di HP.
+- **Wajah/wadah** adalah `www/index.html` yang dibungkus menjadi APK dengan Capacitor.
+- **GitHub Actions** otomatis membuat APK debug setiap ada push ke branch `main`.
+- **Cloudflare Tunnel** bersifat opsional untuk mengakses Ollama dari luar jaringan lokal.
+
+## Menjalankan Ollama di Termux
 
 ```bash
 pkg update && pkg upgrade -y
 pkg install proot-distro -y
 proot-distro install ubuntu
 proot-distro login ubuntu
-
 apt update && apt install curl -y
 curl -fsSL https://ollama.com/install.sh | sh
-
 OLLAMA_HOST=0.0.0.0 ollama serve &
 ollama run llama3.1:8b
 ```
 
-Cek model terinstall: `ollama list`  
-Hapus model lama: `ollama rm <nama_model>`
+Cek model yang terpasang dengan `ollama list`. Hapus model dengan `ollama rm <nama_model>`.
 
-## 2. Struktur Project APK (Capacitor)
-
-```
-otak-chat-apk/
-├── www/
-│   └── index.html          # kode tampilan chat (wajah app)
-├── capacitor.config.json   # konfigurasi bungkus jadi APK
-├── package.json
-├── .github/
-│   └── workflows/
-│       └── build-apk.yml   # builder APK otomatis di GitHub Actions
-└── README.md
-```
-
-`index.html` berisi UI chat yang mengirim request ke Ollama lewat endpoint `POST /api/chat` (format streaming JSON per baris).
-
-## 3. Build APK Otomatis
-
-Alur kerja `.github/workflows/build-apk.yml`:
-1. Checkout kode
-2. Setup Node + Java
-3. `npx cap add android` (kalau folder android belum ada)
-4. `npx cap sync android`
-5. `./gradlew assembleDebug`
-6. Upload hasil `.apk` sebagai artifact yang bisa didownload dari tab **Actions** di GitHub
-
-Setiap kali `www/index.html` diedit dan di-push, APK baru otomatis dibuat — tanpa perlu Android Studio.
-
-## 4. Upload / Update ke GitHub
+## Menjalankan project secara lokal
 
 ```bash
-git init
-git add .
-git commit -m "Setup awal"
-git branch -M main
-git remote add origin https://github.com/<username>/<nama-repo>.git
-git push -u origin main
+npm install
+npx cap add android
+npx cap sync android
 ```
 
-Update selanjutnya:
-```bash
-git add www/index.html
-git commit -m "Perbaiki tampilan"
-git push
+Untuk pengembangan UI, file utama berada di `www/index.html`. Atur alamat Ollama dan nama model langsung pada panel pengaturan aplikasi. Nilai tersebut disimpan di `localStorage` perangkat.
+
+## Build APK otomatis
+
+Workflow `.github/workflows/build-apk.yml` akan:
+
+1. Checkout kode.
+2. Menyiapkan Node.js dan Java 17.
+3. Menginstal dependensi dengan `npm install`.
+4. Menambahkan platform Android jika belum ada.
+5. Menjalankan `npx cap sync android`.
+6. Menjalankan `./gradlew assembleDebug`.
+7. Mengunggah `app-debug.apk` sebagai artifact bernama `otak-chat-debug-apk`.
+
+Build dapat dijalankan otomatis melalui push ke `main` atau manual dari menu **Actions → Build APK → Run workflow**.
+
+## API chat
+
+Aplikasi mengirim request streaming ke endpoint Ollama berikut:
+
+```http
+POST http://<alamat-ollama>:11434/api/chat
+Content-Type: application/json
 ```
 
-## 5. Fitur Connectors di Dalam App
+Contoh body:
 
-Panel **Connectors** (ikon 🔌) berisi dua bagian:
+```json
+{
+  "model": "llama3.1:8b",
+  "messages": [
+    {"role": "user", "content": "Halo"}
+  ],
+  "stream": true
+}
+```
 
-### a. GitHub
-- **Simpan Koneksi**: masukkan Personal Access Token (fine-grained, izin "Contents: Read and write" khusus repo tersebut) + nama repo (`owner/nama-repo`).
-- **Ambil Kode**: mengambil isi file (default `www/index.html`) dari repo lewat GitHub API (`GET /repos/{repo}/contents/{path}`), ditampilkan di editor teks dalam app.
-- **Push Perbaikan**: mengirim isi editor kembali ke GitHub (`PUT /repos/{repo}/contents/{path}`) sehingga tersimpan sebagai commit baru → otomatis memicu GitHub Actions untuk build ulang APK.
-- **Push Log Chat**: menyimpan riwayat percakapan sebagai file JSON baru di folder `logs/` pada repo, dengan nama file bertanda waktu.
+Respons streaming JSON per baris dibaca dari `data.message.content`.
 
-### b. Server Profiles (untuk Cloudflare / alamat lain)
-- Simpan beberapa alamat server dengan nama (misal "Lokal", "Cloudflare Tunnel").
-- Tap salah satu profil untuk langsung menjadikannya alamat aktif (host) tanpa harus mengetik ulang.
-- Berguna untuk gonta-ganti antara `http://127.0.0.1:11434` (lokal) dan `https://xxxx.trycloudflare.com` (saat pakai Cloudflare Tunnel).
-
-## 6. Cloudflare Tunnel (opsional, akses dari luar HP)
+## Cloudflare Tunnel (opsional)
 
 ```bash
 curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -o cloudflared
@@ -115,22 +101,24 @@ chmod +x cloudflared
 ./cloudflared tunnel --url http://127.0.0.1:11434
 ```
 
-Alamat `https://xxxx.trycloudflare.com` yang muncul dimasukkan sebagai Server Profile baru di app.
+Masukkan alamat `https://xxxx.trycloudflare.com` yang dihasilkan ke kolom alamat Ollama di aplikasi.
 
-**Catatan keamanan:** Ollama tidak punya sistem login/password bawaan. Selama tunnel aktif, siapa pun yang tahu alamatnya bisa memakai otak di HP. Jangan sebar alamat tunnel ke publik; matikan `cloudflared` kalau tidak dipakai.
+> **Peringatan keamanan:** Ollama tidak menyediakan login/password bawaan. Siapa pun yang mengetahui alamat tunnel dapat mencoba memakai server tersebut. Jangan membagikan alamat tunnel dan matikan `cloudflared` saat tidak digunakan.
 
-## 7. Batasan Teknis (penting untuk dipahami)
+## Batasan saat ini
 
-- App (APK/WebView) **tidak bisa** menjalankan atau mematikan proses `cloudflared`/`git` secara langsung dari dalam app — itu proses terpisah yang jalan di Termux/Ubuntu, sandbox Android tidak mengizinkan satu app menjalankan proses app lain tanpa root/plugin native khusus.
-- Yang bisa dilakukan app lewat internet biasa (HTTPS/API) HANYA: memanggil GitHub API (baca/tulis file di repo) dan memanggil Ollama API lewat alamat manapun yang aktif (lokal atau lewat tunnel).
-- Jadi fitur "connector" di app ini sifatnya: **mengatur konfigurasi & mendorong perubahan kode**, bukan mengendalikan proses sistem di HP.
+- Versi awal menyediakan chat Ollama, pengaturan host/model, penyimpanan konfigurasi lokal, dan tombol hapus chat.
+- Connector GitHub, profil server multipel, serta push log chat masih merupakan fitur lanjutan yang direncanakan.
+- Aplikasi tidak dapat menjalankan atau mematikan proses `cloudflared`/`git` secara langsung di luar sandbox Android.
 
 ## Checklist
 
-- [ ] Ollama server hidup & model terdownload
-- [ ] Project APK sudah di-push ke GitHub
-- [ ] GitHub Actions berhasil build APK (centang hijau di tab Actions)
-- [ ] APK sudah diinstall di HP
-- [ ] Host & model diatur di app
-- [ ] Token & repo GitHub diatur di Connectors (kalau mau edit kode dari app)
-- [ ] Profil server (Lokal/Cloudflare) sudah disimpan sesuai kebutuhan
+- [x] Struktur project Capacitor dibuat.
+- [x] UI chat pada `www/index.html` dibuat.
+- [x] Konfigurasi `capacitor.config.json` dibuat.
+- [x] Workflow build APK otomatis dibuat.
+- [ ] Ollama server hidup dan model terdownload.
+- [ ] GitHub Actions berhasil build APK.
+- [ ] APK diinstall di HP.
+- [ ] Host dan model diatur di aplikasi.
+- [ ] Connector GitHub ditambahkan jika diperlukan.

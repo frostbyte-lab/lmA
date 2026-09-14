@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Otak Chat</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #e2e8f0; }
+    main { max-width: 900px; margin: auto; min-height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 1.35rem; } .muted { color: #94a3b8; font-size: .85rem; }
+    #messages { flex: 1; padding: 24px 20px; overflow-y: auto; }
+    .message { padding: 14px 16px; border-radius: 14px; margin: 12px 0; white-space: pre-wrap; line-height: 1.5; }
+    .user { background: #1d4ed8; margin-left: 15%; } .assistant { background: #1e293b; margin-right: 15%; }
+    form { display: flex; gap: 10px; padding: 16px 20px 22px; border-top: 1px solid #334155; }
+    textarea, input { background: #111827; border: 1px solid #475569; border-radius: 10px; color: inherit; padding: 11px; box-sizing: border-box; }
+    textarea { flex: 1; min-height: 48px; resize: vertical; } button { border: 0; border-radius: 10px; padding: 0 18px; background: #38bdf8; color: #082f49; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; } .settings { display: flex; gap: 8px; padding: 12px 20px; flex-wrap: wrap; } .settings input { flex: 1; min-width: 200px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><div><h1>Otak Chat</h1><span class="muted">Ollama + Capacitor</span></div><button id="clear" type="button">Hapus chat</button></header>
+    <section class="settings"><input id="host" value="http://127.0.0.1:11434" aria-label="Alamat Ollama" /><input id="model" value="llama3.1:8b" aria-label="Nama model" /><button id="save" type="button">Simpan</button></section>
+    <section id="messages" aria-live="polite"><p class="muted">Tulis pesan untuk mulai berbicara dengan model Ollama.</p></section>
+    <form id="chat-form"><textarea id="prompt" placeholder="Ketik pesan..." required></textarea><button id="send" type="submit">Kirim</button></form>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    const messages = $('messages'); const history = [];
+    $('host').value = localStorage.host || $('host').value; $('model').value = localStorage.model || $('model').value;
+    function add(role, text) { const el = document.createElement('div'); el.className = `message ${role}`; el.textContent = text; messages.appendChild(el); messages.scrollTop = messages.scrollHeight; return el; }
+    $('save').onclick = () => { localStorage.host = $('host').value.replace(/\/$/, ''); localStorage.model = $('model').value; };
+    $('clear').onclick = () => { history.length = 0; messages.innerHTML = '<p class="muted">Chat dihapus.</p>'; };
+    $('chat-form').onsubmit = async event => {
+      event.preventDefault(); const prompt = $('prompt').value.trim(); if (!prompt) return;
+      $('prompt').value = ''; add('user', prompt); history.push({ role: 'user', content: prompt });
+      const reply = add('assistant', '...'); $('send').disabled = true;
+      try {
+        const response = await fetch(`${$('host').value.replace(/\/$/, '')}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: $('model').value, messages: history, stream: true }) });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`); const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '', answer = '';
+        while (true) { const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop(); for (const line of lines) { if (!line.trim()) continue; const data = JSON.parse(line); answer += data.message?.content || ''; reply.textContent = answer; messages.scrollTop = messages.scrollHeight; } }
+        history.push({ role: 'assistant', content: answer });
+      } catch (error) { reply.textContent = `Gagal terhubung ke Ollama: ${error.message}`; history.pop(); }
+      finally { $('send').disabled = false; }
+    };
+  </script>
+</body>
+</html>
