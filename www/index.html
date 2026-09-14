@@ -3,48 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#212121" />
   <title>Otak Chat</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
-    body { margin: 0; background: #0f172a; color: #e2e8f0; }
-    main { max-width: 900px; margin: auto; min-height: 100vh; display: flex; flex-direction: column; }
-    header { padding: 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
-    h1 { margin: 0; font-size: 1.35rem; } .muted { color: #94a3b8; font-size: .85rem; }
-    #messages { flex: 1; padding: 24px 20px; overflow-y: auto; }
-    .message { padding: 14px 16px; border-radius: 14px; margin: 12px 0; white-space: pre-wrap; line-height: 1.5; }
-    .user { background: #1d4ed8; margin-left: 15%; } .assistant { background: #1e293b; margin-right: 15%; }
-    form { display: flex; gap: 10px; padding: 16px 20px 22px; border-top: 1px solid #334155; }
-    textarea, input { background: #111827; border: 1px solid #475569; border-radius: 10px; color: inherit; padding: 11px; box-sizing: border-box; }
-    textarea { flex: 1; min-height: 48px; resize: vertical; } button { border: 0; border-radius: 10px; padding: 0 18px; background: #38bdf8; color: #082f49; font-weight: 700; cursor: pointer; }
-    button:disabled { opacity: .5; cursor: wait; } .settings { display: flex; gap: 8px; padding: 12px 20px; flex-wrap: wrap; } .settings input { flex: 1; min-width: 200px; }
+    :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #ececec; background: #212121; }
+    * { box-sizing: border-box; } body { margin: 0; min-height: 100vh; background: #212121; color: #ececec; }
+    button, textarea, input { font: inherit; } button { cursor: pointer; color: inherit; border: 0; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: #171717; padding: 14px 12px; display: flex; flex-direction: column; gap: 18px; flex-shrink: 0; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-weight: 700; font-size: 17px; }
+    .brand-mark { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #10a37f; color: #fff; font-size: 16px; }
+    .new-chat { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px; border-radius: 8px; background: #2f2f2f; text-align: left; }
+    .new-chat:hover, .sidebar-btn:hover { background: #303030; }
+    .side-label { padding: 0 10px; color: #8e8e8e; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+    .history { display: flex; flex-direction: column; gap: 3px; overflow: auto; }
+    .history-item, .sidebar-btn { padding: 10px; border-radius: 7px; background: transparent; text-align: left; color: #c6c6c6; }
+    .history-item.active { background: #2f2f2f; color: #fff; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid #303030; padding-top: 10px; display: grid; gap: 3px; }
+    .sidebar-btn { display: flex; align-items: center; gap: 10px; width: 100%; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar { height: 64px; border-bottom: 1px solid #303030; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+    .model-select { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
+    .model-dot { width: 8px; height: 8px; border-radius: 50%; background: #10a37f; box-shadow: 0 0 0 4px #10a37f22; }
+    .top-actions { display: flex; gap: 6px; } .icon-btn { width: 36px; height: 36px; border-radius: 8px; background: transparent; font-size: 18px; }
+    .icon-btn:hover { background: #2f2f2f; }
+    #messages { flex: 1; width: min(860px, 100%); margin: 0 auto; padding: 36px 24px 150px; overflow-y: auto; }
+    .welcome { text-align: center; margin: 14vh auto 0; max-width: 580px; } .welcome h1 { font-size: 30px; margin: 0 0 10px; } .welcome p { color: #a0a0a0; margin: 0; }
+    .message { display: flex; gap: 14px; padding: 22px 0; line-height: 1.65; animation: rise .2s ease-out; }
+    .avatar { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 7px; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+    .message.user .avatar { background: #6b7280; } .message.assistant .avatar { background: #10a37f; }
+    .message-body { min-width: 0; white-space: pre-wrap; word-wrap: break-word; } .message-role { color: #b7b7b7; font-size: 13px; margin-bottom: 3px; }
+    .composer-wrap { position: fixed; bottom: 0; left: 260px; right: 0; padding: 20px 24px 25px; background: linear-gradient(transparent, #212121 24%); }
+    .composer { width: min(760px, 100%); margin: 0 auto; background: #2f2f2f; border: 1px solid #555; border-radius: 15px; box-shadow: 0 8px 28px #0005; padding: 10px 12px 10px 16px; display: flex; align-items: flex-end; gap: 10px; }
+    textarea { flex: 1; border: 0; outline: 0; resize: none; min-height: 25px; max-height: 140px; padding: 5px 0; background: transparent; color: #ececec; line-height: 1.45; } textarea::placeholder { color: #a0a0a0; }
+    .send { width: 34px; height: 34px; border-radius: 9px; background: #676767; font-size: 18px; } .send.ready { background: #fff; color: #202020; } .send:disabled { opacity: .45; cursor: wait; }
+    .hint { width: min(760px, 100%); margin: 8px auto 0; color: #8f8f8f; font-size: 11px; text-align: center; }
+    .settings { display: none; position: absolute; right: 18px; top: 58px; z-index: 2; width: 310px; background: #2f2f2f; border: 1px solid #555; border-radius: 12px; padding: 14px; box-shadow: 0 10px 30px #0008; } .settings.open { display: grid; gap: 10px; }
+    .settings label { font-size: 12px; color: #aaa; } .settings input { width: 100%; padding: 9px; margin-top: 4px; background: #212121; color: #eee; border: 1px solid #555; border-radius: 7px; }
+    .settings-save { padding: 9px; border-radius: 7px; background: #10a37f; font-weight: 600; }
+    @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    @media (max-width: 700px) { .sidebar { width: 64px; padding: 12px 8px; align-items: center; } .brand { padding: 8px; } .brand span, .new-chat span, .side-label, .history, .sidebar-btn span { display: none; } .new-chat, .sidebar-btn { justify-content: center; padding: 11px; } .composer-wrap { left: 64px; padding: 14px 12px 18px; } .topbar { padding: 0 14px; } #messages { padding: 25px 15px 140px; } }
   </style>
 </head>
 <body>
-  <main>
-    <header><div><h1>Otak Chat</h1><span class="muted">Ollama + Capacitor</span></div><button id="clear" type="button">Hapus chat</button></header>
-    <section class="settings"><input id="host" value="http://127.0.0.1:11434" aria-label="Alamat Ollama" /><input id="model" value="llama3.1:8b" aria-label="Nama model" /><button id="save" type="button">Simpan</button></section>
-    <section id="messages" aria-live="polite"><p class="muted">Tulis pesan untuk mulai berbicara dengan model Ollama.</p></section>
-    <form id="chat-form"><textarea id="prompt" placeholder="Ketik pesan..." required></textarea><button id="send" type="submit">Kirim</button></form>
-  </main>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">✦</div><span>Otak Chat</span></div>
+      <button class="new-chat" id="new-chat"><b>＋</b><span>Chat baru</span></button>
+      <div class="side-label">Riwayat</div>
+      <div class="history"><button class="history-item active">Percakapan baru</button></div>
+      <div class="sidebar-bottom">
+        <button class="sidebar-btn" id="settings-btn">⚙ <span>Pengaturan</span></button>
+        <button class="sidebar-btn" id="clear">♲ <span>Hapus chat</span></button>
+      </div>
+    </aside>
+    <section class="main">
+      <header class="topbar"><div class="model-select"><span class="model-dot"></span><span id="model-title">llama3.1:8b</span><span class="muted">⌄</span></div><div class="top-actions"><button class="icon-btn" id="settings-top" title="Pengaturan">⚙</button></div></header>
+      <div class="settings" id="settings-panel">
+        <label>Alamat Ollama<input id="host" value="http://127.0.0.1:11434" /></label>
+        <label>Model<input id="model" value="llama3.1:8b" /></label>
+        <button class="settings-save" id="save">Simpan pengaturan</button>
+      </div>
+      <section id="messages" aria-live="polite"><div class="welcome" id="welcome"><h1>Ada yang bisa saya bantu?</h1><p>Terhubung ke Ollama. Tanyakan apa saja kepada Otak Chat.</p></div></section>
+      <div class="composer-wrap"><form class="composer" id="chat-form"><textarea id="prompt" rows="1" placeholder="Kirim pesan ke Otak Chat..." required></textarea><button class="send" id="send" title="Kirim" disabled>↑</button></form><div class="hint">Otak Chat dapat membuat kesalahan. Periksa informasi penting.</div></div>
+    </section>
+  </div>
   <script>
-    const $ = id => document.getElementById(id);
-    const messages = $('messages'); const history = [];
-    $('host').value = localStorage.host || $('host').value; $('model').value = localStorage.model || $('model').value;
-    function add(role, text) { const el = document.createElement('div'); el.className = `message ${role}`; el.textContent = text; messages.appendChild(el); messages.scrollTop = messages.scrollHeight; return el; }
-    $('save').onclick = () => { localStorage.host = $('host').value.replace(/\/$/, ''); localStorage.model = $('model').value; };
-    $('clear').onclick = () => { history.length = 0; messages.innerHTML = '<p class="muted">Chat dihapus.</p>'; };
-    $('chat-form').onsubmit = async event => {
-      event.preventDefault(); const prompt = $('prompt').value.trim(); if (!prompt) return;
-      $('prompt').value = ''; add('user', prompt); history.push({ role: 'user', content: prompt });
-      const reply = add('assistant', '...'); $('send').disabled = true;
-      try {
-        const response = await fetch(`${$('host').value.replace(/\/$/, '')}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: $('model').value, messages: history, stream: true }) });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`); const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '', answer = '';
-        while (true) { const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop(); for (const line of lines) { if (!line.trim()) continue; const data = JSON.parse(line); answer += data.message?.content || ''; reply.textContent = answer; messages.scrollTop = messages.scrollHeight; } }
-        history.push({ role: 'assistant', content: answer });
-      } catch (error) { reply.textContent = `Gagal terhubung ke Ollama: ${error.message}`; history.pop(); }
-      finally { $('send').disabled = false; }
-    };
+    const $ = id => document.getElementById(id); const messages = $('messages'); const history = [];
+    $('host').value = localStorage.host || $('host').value; $('model').value = localStorage.model || $('model').value; $('model-title').textContent = $('model').value;
+    const esc = text => text;
+    function add(role, text) { $('welcome')?.remove(); const el = document.createElement('article'); el.className = `message ${role}`; el.innerHTML = `<div class="avatar">${role === 'user' ? 'U' : '✦'}</div><div class="message-body"><div class="message-role">${role === 'user' ? 'Anda' : 'Otak Chat'}</div><div class="message-text"></div></div>`; el.querySelector('.message-text').textContent = esc(text); messages.appendChild(el); messages.scrollTop = messages.scrollHeight; return el.querySelector('.message-text'); }
+    function toggleSettings() { $('settings-panel').classList.toggle('open'); } $('settings-btn').onclick = toggleSettings; $('settings-top').onclick = toggleSettings;
+    $('save').onclick = () => { localStorage.host = $('host').value.replace(/\/$/, ''); localStorage.model = $('model').value; $('model-title').textContent = $('model').value; $('settings-panel').classList.remove('open'); };
+    $('clear').onclick = $('new-chat').onclick = () => { history.length = 0; messages.innerHTML = '<div class="welcome" id="welcome"><h1>Ada yang bisa saya bantu?</h1><p>Terhubung ke Ollama. Tanyakan apa saja kepada Otak Chat.</p></div>'; };
+    $('prompt').oninput = () => { $('prompt').style.height = 'auto'; $('prompt').style.height = Math.min($('prompt').scrollHeight, 140) + 'px'; $('send').disabled = !$('prompt').value.trim(); $('send').classList.toggle('ready', !$('send').disabled); };
+    $('prompt').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('chat-form').requestSubmit(); } };
+    $('chat-form').onsubmit = async event => { event.preventDefault(); const prompt = $('prompt').value.trim(); if (!prompt) return; $('prompt').value = ''; $('prompt').oninput(); add('user', prompt); history.push({ role: 'user', content: prompt }); const reply = add('assistant', ''); $('send').disabled = true;
+      try { const response = await fetch(`${$('host').value.replace(/\/$/, '')}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: $('model').value, messages: history, stream: true }) }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '', answer = '';
+        while (true) { const { value, done } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop(); for (const line of lines) { if (!line.trim()) continue; const data = JSON.parse(line); answer += data.message?.content || ''; reply.textContent = answer; messages.scrollTop = messages.scrollHeight; } } history.push({ role: 'assistant', content: answer });
+      } catch (error) { reply.textContent = `Gagal terhubung ke Ollama: ${error.message}`; history.pop(); } finally { $('send').disabled = false; $('send').classList.remove('ready'); } };
   </script>
 </body>
 </html>
