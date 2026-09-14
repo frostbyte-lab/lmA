@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Logo Otak Chat">
+  <defs><linearGradient id="g" x1="12" y1="14" x2="112" y2="114" gradientUnits="userSpaceOnUse"><stop stop-color="#55e6b3"/><stop offset="1" stop-color="#3979ec"/></linearGradient></defs>
+  <circle cx="64" cy="64" r="48" fill="#17253c" stroke="#55e6b3" stroke-width="3" opacity=".95"/>
+  <ellipse cx="64" cy="64" rx="60" ry="25" fill="none" stroke="#6f9fff" stroke-width="3" transform="rotate(-28 64 64)" opacity=".78"/>
+  <ellipse cx="64" cy="64" rx="60" ry="25" fill="none" stroke="#55e6b3" stroke-width="3" transform="rotate(28 64 64)" opacity=".78"/>
+  <path d="M45 45c-6 0-11 5-11 11 0 3 1 5 3 7-2 2-3 5-3 8 0 7 5 12 12 12h5v-7h-5c-3 0-5-2-5-5 0-3 2-5 5-5h5v-7h-5c-3 0-5-2-5-5s2-5 5-5h8v-7h-9Zm38 0c6 0 11 5 11 11 0 3-1 5-3 7 2 2 3 5 3 8 0 7-5 12-12 12h-5v-7h5c3 0 5-2 5-5 0-3-2-5-5-5h-5v-7h5c3 0 5-2 5-5s-2-5-5-5h-8v-7h9Z" fill="url(#g)"/>
+  <path d="M57 42h14v44H57z" fill="url(#g)" opacity=".86"/><circle cx="64" cy="64" r="7" fill="#f4fbff"/>
+  <circle cx="14" cy="41" r="5" fill="#55e6b3"/><circle cx="114" cy="87" r="5" fill="#6f9fff"/>
+</svg>
